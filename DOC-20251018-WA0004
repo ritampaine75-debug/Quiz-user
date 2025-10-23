@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Admin Panel</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #f5a623;
+            --background-color: #f4f7f6;
+            --text-color: #333;
+            --white-color: #fff;
+            --danger-color: #d0021b;
+            --success-color: #7ed321;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            overflow: hidden;
+            padding: 0 20px;
+        }
+
+        .admin-panel {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--white-color);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .card h2, .card h3 {
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--background-color);
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .btn {
+            display: inline-block;
+            background: var(--primary-color);
+            color: var(--white-color);
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: center;
+            font-weight: 600;
+            transition: background 0.3s ease;
+        }
+
+        .btn:hover {
+            background: #357ABD;
+        }
+        
+        .btn-secondary { background-color: var(--secondary-color); }
+        .btn-secondary:hover { background-color: #d8931f; }
+
+        .btn-danger { background-color: var(--danger-color); }
+        .btn-danger:hover { background-color: #a80215; }
+
+        #categoriesList, #quizzesList, #questionsList {
+            list-style: none;
+            padding: 0;
+        }
+
+        #categoriesList li, #quizzesList li, #questionsList li {
+            background: #eef5ff;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .action-buttons button {
+            margin-left: 5px;
+            font-size: 12px;
+            padding: 5px 10px;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 10% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 600px;
+            border-radius: 8px;
+            position: relative;
+        }
+
+        .close-btn {
+            color: #aaa;
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 2px;
+            padding: 16px;
+            position: fixed;
+            z-index: 1;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 30px;
+            font-size: 17px;
+        }
+        .toast.show {
+            visibility: visible;
+            -webkit-animation: fadein 0.5s, fadeout 0.5s 2.5s;
+            animation: fadein 0.5s, fadeout 0.5s 2.5s;
+        }
+
+        @-webkit-keyframes fadein {
+          from {bottom: 0; opacity: 0;} 
+          to {bottom: 30px; opacity: 1;}
+        }
+
+        @keyframes fadein {
+          from {bottom: 0; opacity: 0;}
+          to {bottom: 30px; opacity: 1;}
+        }
+
+        @-webkit-keyframes fadeout {
+          from {bottom: 30px; opacity: 1;} 
+          to {bottom: 0; opacity: 0;}
+        }
+
+        @keyframes fadeout {
+          from {bottom: 30px; opacity: 1;}
+          to {bottom: 0; opacity: 0;}
+        }
+
+        #leaderboardTable {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        #leaderboardTable th, #leaderboardTable td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        #leaderboardTable th {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .admin-panel {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Quiz Admin Panel</h1>
+        <div class="admin-panel">
+            <div class="card">
+                <h2>Manage Categories & Quizzes</h2>
+                
+                <div class="form-group">
+                    <label for="categoryName">New Category Name:</label>
+                    <input type="text" id="categoryName" placeholder="e.g., Science">
+                    <button class="btn" onclick="addCategory()">Add Category</button>
+                </div>
+
+                <div id="category-section">
+                    <h3>Categories</h3>
+                    <ul id="categoriesList"></ul>
+                </div>
+                
+                <hr>
+
+                <div id="quiz-section" style="display:none;">
+                    <h3 id="quiz-section-title"></h3>
+                    <div class="form-group">
+                        <label for="quizName">New Quiz Name:</label>
+                        <input type="text" id="quizName" placeholder="e.g., Physics 101">
+                        <button class="btn" onclick="addQuiz()">Add Quiz</button>
+                    </div>
+                    <ul id="quizzesList"></ul>
+                </div>
+            </div>
+
+            <div class="card" id="questions-panel" style="display:none;">
+                <h2 id="questions-panel-title">Manage Questions</h2>
+                <button class="btn" onclick="openQuestionModal()">Add New Question</button>
+                <ul id="questionsList"></ul>
+                <hr>
+                
+                <!-- NEW: JSON Import Section -->
+                <div id="json-import-section">
+                    <h3>Import Questions from JSON</h3>
+                    <div class="form-group">
+                        <label for="jsonInput">Paste JSON array here:</label>
+                        <textarea id="jsonInput" rows="10" placeholder="[ { &quot;question&quot;: &quot;...&quot;, &quot;options&quot;: {...}, &quot;answer_key&quot;: &quot;...&quot; }, ... ]"></textarea>
+                    </div>
+                    <button class="btn btn-secondary" onclick="importQuestionsFromJSON()">Import Questions</button>
+                </div>
+
+            </div>
+
+            <div class="card" style="grid-column: 1 / -1;">
+                <h2>Leaderboard</h2>
+                <table id="leaderboardTable">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Username</th>
+                            <th>Category</th>
+                            <th>Quiz</th>
+                            <th>Score (%)</th>
+                            <th>Correct</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboardBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Question Modal -->
+    <div id="questionModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeQuestionModal()">&times;</span>
+            <h3 id="modalTitle">Add a New Question</h3>
+            <form id="questionForm">
+                <input type="hidden" id="questionId">
+                <div class="form-group">
+                    <label for="questionText">Question:</label>
+                    <input type="text" id="questionText" required>
+                </div>
+                <div class="form-group">
+                    <label for="optionA">Option A:</label>
+                    <input type="text" id="optionA" required>
+                </div>
+                <div class="form-group">
+                    <label for="optionB">Option B:</label>
+                    <input type="text" id="optionB" required>
+                </div>
+                <div class="form-group">
+                    <label for="optionC">Option C:</label>
+                    <input type="text" id="optionC" required>
+                </div>
+                <div class="form-group">
+                    <label for="optionD">Option D:</label>
+                    <input type="text" id="optionD" required>
+                </div>
+                <div class="form-group">
+                    <label for="correctAnswer">Correct Answer:</label>
+                    <select id="correctAnswer" required>
+                        <option value="A">Option A</option>
+                        <option value="B">Option B</option>
+                        <option value="C">Option C</option>
+                        <option value="D">Option D</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="timeLimit">Time Limit (seconds):</label>
+                    <input type="number" id="timeLimit" value="30" required>
+                </div>
+                <button type="submit" class="btn">Save Question</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+        import { getDatabase, ref, set, push, onValue, remove, get } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCdOTC7i5OkYN9NbX96EZq9uvI6gNYxv1s",
+            authDomain: "quiz-bro-d087d.firebaseapp.com",
+            databaseURL: "https://quiz-bro-d087d-default-rtdb.firebaseio.com",
+            projectId: "quiz-bro-d087d",
+            storageBucket: "quiz-bro-d087d.firebasestorage.app",
+            messagingSenderId: "79601755297",
+            appId: "1:79601755297:web:65db46b5412852a1c4fce0"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        let selectedCategoryId = null;
+        let selectedQuizId = null;
+
+        // Toast Notification
+        function showToast(message) {
+            const toast = document.getElementById("toast");
+            toast.textContent = message;
+            toast.className = "toast show";
+            setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
+        }
+
+        // Categories
+        window.addCategory = function() {
+            const categoryName = document.getElementById('categoryName').value.trim();
+            if (categoryName) {
+                const categoriesRef = ref(db, 'categories');
+                const newCategoryRef = push(categoriesRef);
+                set(newCategoryRef, { name: categoryName });
+                document.getElementById('categoryName').value = '';
+                showToast("Category added successfully!");
+            }
+        };
+
+        window.deleteCategory = function(categoryId) {
+            if (confirm('Are you sure you want to delete this category and all its quizzes?')) {
+                remove(ref(db, `categories/${categoryId}`));
+                showToast("Category deleted.");
+                document.getElementById('quiz-section').style.display = 'none';
+                document.getElementById('questions-panel').style.display = 'none';
+            }
+        };
+
+        function displayCategories(categories) {
+            const list = document.getElementById('categoriesList');
+            list.innerHTML = '';
+            for (const id in categories) {
+                const item = document.createElement('li');
+                item.innerHTML = `
+                    <span>${categories[id].name}</span>
+                    <div class="action-buttons">
+                        <button class="btn btn-secondary" onclick="selectCategory('${id}', '${categories[id].name}')">Manage Quizzes</button>
+                        <button class="btn btn-danger" onclick="deleteCategory('${id}')">Delete</button>
+                    </div>
+                `;
+                list.appendChild(item);
+            }
+        }
+        
+        window.selectCategory = function(categoryId, categoryName) {
+            selectedCategoryId = categoryId;
+            document.getElementById('quiz-section').style.display = 'block';
+            document.getElementById('questions-panel').style.display = 'none';
+            document.getElementById('quiz-section-title').innerText = `Quizzes in "${categoryName}"`;
+            selectedQuizId = null;
+            
+            const quizzesRef = ref(db, `categories/${selectedCategoryId}/quizzes`);
+            onValue(quizzesRef, (snapshot) => {
+                const data = snapshot.val() || {};
+                displayQuizzes(data);
+            });
+        }
+
+        // Quizzes
+        window.addQuiz = function() {
+            const quizName = document.getElementById('quizName').value.trim();
+            if (quizName && selectedCategoryId) {
+                const quizzesRef = ref(db, `categories/${selectedCategoryId}/quizzes`);
+                const newQuizRef = push(quizzesRef);
+                set(newQuizRef, { name: quizName });
+                document.getElementById('quizName').value = '';
+                showToast("Quiz added successfully!");
+            }
+        };
+        
+        window.deleteQuiz = function(quizId) {
+            if(confirm('Are you sure you want to delete this quiz and all its quizzes?')) {
+                remove(ref(db, `categories/${selectedCategoryId}/quizzes/${quizId}`));
+                showToast("Quiz deleted.");
+                document.getElementById('questions-panel').style.display = 'none';
+            }
+        };
+
+        function displayQuizzes(quizzes) {
+            const list = document.getElementById('quizzesList');
+            list.innerHTML = '';
+            for (const id in quizzes) {
+                const item = document.createElement('li');
+                item.innerHTML = `
+                    <span>${quizzes[id].name}</span>
+                     <div class="action-buttons">
+                        <button class="btn btn-secondary" onclick="selectQuiz('${id}', '${quizzes[id].name}')">Manage Questions</button>
+                        <button class="btn btn-danger" onclick="deleteQuiz('${id}')">Delete</button>
+                    </div>
+                `;
+                list.appendChild(item);
+            }
+        }
+        
+        window.selectQuiz = function(quizId, quizName) {
+            selectedQuizId = quizId;
+            document.getElementById('questions-panel').style.display = 'block';
+            document.getElementById('questions-panel-title').innerText = `Questions for "${quizName}"`;
+
+            const questionsRef = ref(db, `categories/${selectedCategoryId}/quizzes/${selectedQuizId}/questions`);
+            onValue(questionsRef, (snapshot) => {
+                const data = snapshot.val() || {};
+                displayQuestions(data);
+            });
+        }
+        
+        // Questions
+        function displayQuestions(questions) {
+            const list = document.getElementById('questionsList');
+            list.innerHTML = '';
+            for (const id in questions) {
+                const item = document.createElement('li');
+                item.innerHTML = `
+                    <span style="flex-grow: 1;">${questions[id].questionText}</span>
+                    <div class="action-buttons">
+                        <button class="btn" onclick="editQuestion('${id}')">Edit</button>
+                        <button class="btn btn-danger" onclick="deleteQuestion('${id}')">Delete</button>
+                    </div>
+                `;
+                list.appendChild(item);
+            }
+        }
+        
+        window.deleteQuestion = function(questionId) {
+            if(confirm('Are you sure you want to delete this question?')) {
+                remove(ref(db, `categories/${selectedCategoryId}/quizzes/${selectedQuizId}/questions/${questionId}`));
+                showToast("Question deleted.");
+            }
+        };
+
+        window.editQuestion = async function(questionId) {
+            const questionRef = ref(db, `categories/${selectedCategoryId}/quizzes/${selectedQuizId}/questions/${questionId}`);
+            const snapshot = await get(questionRef);
+            if(snapshot.exists()){
+                const data = snapshot.val();
+                document.getElementById('modalTitle').innerText = 'Edit Question';
+                document.getElementById('questionId').value = questionId;
+                document.getElementById('questionText').value = data.questionText;
+                document.getElementById('optionA').value = data.options.A;
+                document.getElementById('optionB').value = data.options.B;
+                document.getElementById('optionC').value = data.options.C;
+                document.getElementById('optionD').value = data.options.D;
+                document.getElementById('correctAnswer').value = data.correctAnswer;
+                document.getElementById('timeLimit').value = data.timeLimit;
+                openQuestionModal(true);
+            }
+        };
+
+        // NEW: JSON Import Function
+        window.importQuestionsFromJSON = function() {
+            if (!selectedCategoryId || !selectedQuizId) {
+                showToast("Please select a category and a quiz first.");
+                return;
+            }
+
+            const jsonInput = document.getElementById('jsonInput').value.trim();
+            if (!jsonInput) {
+                showToast("JSON input cannot be empty.");
+                return;
+            }
+
+            try {
+                const questionsToImport = JSON.parse(jsonInput);
+                if (!Array.isArray(questionsToImport)) {
+                    showToast("Error: JSON must be an array of questions.");
+                    return;
+                }
+
+                let questionsAdded = 0;
+                const questionsRef = ref(db, `categories/${selectedCategoryId}/quizzes/${selectedQuizId}/questions`);
+
+                questionsToImport.forEach(q => {
+                    if (q.question && q.options && q.answer_key) {
+                        const newQuestionData = {
+                            questionText: q.question,
+                            options: q.options,
+                            correctAnswer: q.answer_key,
+                            timeLimit: q.timeLimit || 30 // Default to 30s if not provided
+                        };
+                        
+                        const newQuestionRef = push(questionsRef);
+                        set(newQuestionRef, newQuestionData);
+                        questionsAdded++;
+                    }
+                });
+
+                if (questionsAdded > 0) {
+                    showToast(`Successfully imported ${questionsAdded} questions!`);
+                    document.getElementById('jsonInput').value = '';
+                } else {
+                    showToast("No valid questions found to import. Check the JSON structure.");
+                }
+
+            } catch (error) {
+                console.error("JSON Parse Error:", error);
+                showToast("Invalid JSON format. Please check your data.");
+            }
+        };
+
+
+        // Modal Logic
+        const modal = document.getElementById("questionModal");
+        window.openQuestionModal = function(isEditing = false) {
+            if (!isEditing) {
+                document.getElementById('modalTitle').innerText = 'Add a New Question';
+                document.getElementById("questionForm").reset();
+                document.getElementById("questionId").value = '';
+            }
+            modal.style.display = "block";
+        };
+
+        window.closeQuestionModal = function() {
+            modal.style.display = "none";
+        };
+        
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                closeQuestionModal();
+            }
+        };
+
+        document.getElementById('questionForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const questionId = document.getElementById('questionId').value;
+            const questionData = {
+                questionText: document.getElementById('questionText').value,
+                options: {
+                    A: document.getElementById('optionA').value,
+                    B: document.getElementById('optionB').value,
+                    C: document.getElementById('optionC').value,
+                    D: document.getElementById('optionD').value,
+                },
+                correctAnswer: document.getElementById('correctAnswer').value,
+                timeLimit: parseInt(document.getElementById('timeLimit').value)
+            };
+            
+            const questionPath = `categories/${selectedCategoryId}/quizzes/${selectedQuizId}/questions/`;
+            const questionRef = questionId ? ref(db, questionPath + questionId) : push(ref(db, questionPath));
+
+            set(questionRef, questionData);
+            showToast(questionId ? "Question updated!" : "Question added!");
+            closeQuestionModal();
+        });
+        
+        // Leaderboard
+        function displayLeaderboard(results) {
+            const tbody = document.getElementById('leaderboardBody');
+            tbody.innerHTML = '';
+            
+            const sortedResults = Object.values(results).sort((a, b) => b.score - a.score);
+
+            sortedResults.forEach((result, index) => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${result.username}</td>
+                    <td>${result.categoryName}</td>
+                    <td>${result.quizName}</td>
+                    <td>${result.score.toFixed(2)}%</td>
+                    <td>${result.correctAnswers}</td>
+                    <td>${new Date(result.timestamp).toLocaleString()}</td>
+                `;
+            });
+        }
+        
+        // Initial Load
+        const categoriesRef = ref(db, 'categories');
+        onValue(categoriesRef, (snapshot) => {
+            const data = snapshot.val() || {};
+            displayCategories(data);
+        });
+
+        const leaderboardRef = ref(db, 'leaderboard');
+        onValue(leaderboardRef, (snapshot) => {
+            const data = snapshot.val() || {};
+            displayLeaderboard(data);
+        });
+
+    </script>
+</body>
+</html>

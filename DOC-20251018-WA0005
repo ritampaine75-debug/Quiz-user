@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz App</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+        @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css');
+
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #f5a623;
+            --background-color: #f4f7f6;
+            --text-color: #333;
+            --white-color: #fff;
+            --correct-color: #7ed321;
+            --wrong-color: #d0021b;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .quiz-container {
+            background: var(--white-color);
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 800px;
+            overflow: hidden;
+            text-align: center;
+        }
+
+        .screen {
+            padding: 40px;
+        }
+
+        .welcome-screen h1 {
+            color: var(--primary-color);
+        }
+
+        input[type="text"] {
+            width: 80%;
+            padding: 12px;
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        .btn {
+            background: var(--primary-color);
+            color: var(--white-color);
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 20px;
+            transition: background 0.3s ease;
+        }
+
+        .btn:hover {
+            background: #357ABD;
+        }
+
+        .category-grid, .quiz-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .category-card, .quiz-card {
+            background: var(--primary-color);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .category-card:hover, .quiz-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .quiz-screen .question {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .options {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .option {
+            background: #eef5ff;
+            border: 2px solid transparent;
+            padding: 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: left;
+            font-size: 18px;
+        }
+
+        .option:hover {
+            border-color: var(--primary-color);
+        }
+
+        .option.correct {
+            background-color: var(--correct-color);
+            color: white;
+            border-color: var(--correct-color);
+        }
+        .option.wrong {
+            background-color: var(--wrong-color);
+            color: white;
+            border-color: var(--wrong-color);
+        }
+        .option.disabled {
+            pointer-events: none;
+        }
+
+        .timer {
+            margin-top: 20px;
+            height: 10px;
+            background: #eee;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .timer-bar {
+            height: 100%;
+            width: 100%;
+            background: var(--secondary-color);
+            transition: width 0.1s linear;
+        }
+
+        .results-screen h2 {
+            color: var(--secondary-color);
+        }
+
+        .results-summary p {
+            font-size: 18px;
+        }
+        .results-summary .score {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        #leaderboardTable {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+        #leaderboardTable th, #leaderboardTable td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+        #leaderboardTable th {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="quiz-container">
+
+        <!-- Welcome Screen -->
+        <div id="welcomeScreen" class="screen">
+            <h1>Welcome to the Quiz!</h1>
+            <p>Enter your name to begin.</p>
+            <input type="text" id="username" placeholder="Your Name">
+            <button class="btn" onclick="startApp()">Start</button>
+        </div>
+
+        <!-- Category Selection Screen -->
+        <div id="categoryScreen" class="screen hidden">
+            <h2>Choose a Category</h2>
+            <div id="categoryGrid" class="category-grid"></div>
+        </div>
+        
+        <!-- Quiz Selection Screen -->
+        <div id="quizScreen" class="screen hidden">
+            <h2 id="quizSelectionTitle">Choose a Quiz</h2>
+            <div id="quizGrid" class="quiz-grid"></div>
+            <button class="btn" onclick="showScreen('categoryScreen')">Back to Categories</button>
+        </div>
+
+        <!-- Quiz Gameplay Screen -->
+        <div id="gameplayScreen" class="screen hidden">
+            <div id="quizHeader">
+                <span id="questionCounter"></span>
+            </div>
+            <div id="question" class="question"></div>
+            <div id="options" class="options"></div>
+            <div class="timer">
+                <div id="timerBar" class="timer-bar"></div>
+            </div>
+        </div>
+
+        <!-- Results Screen -->
+        <div id="resultsScreen" class="screen hidden">
+            <h2>Quiz Completed!</h2>
+            <div class="results-summary">
+                <p>Total Questions: <span id="totalQuestions"></span></p>
+                <p>Correct Answers: <span id="correctAnswers"></span></p>
+                <p>Wrong Answers: <span id="wrongAnswers"></span></p>
+                <p>Total Time: <span id="totalTime"></span>s</p>
+                <p class="score">Score: <span id="percentageScore"></span>%</p>
+            </div>
+            <button class="btn" onclick="showScreen('categoryScreen')">Play Again</button>
+            <button class="btn" onclick="showScreen('leaderboardScreen')">View Leaderboard</button>
+        </div>
+
+        <!-- Leaderboard Screen -->
+        <div id="leaderboardScreen" class="screen hidden">
+            <h2>Leaderboard</h2>
+            <table id="leaderboardTable">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Username</th>
+                        <th>Quiz</th>
+                        <th>Score (%)</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboardBody"></tbody>
+            </table>
+            <button class="btn" onclick="showScreen('categoryScreen')">Back to Quizzes</button>
+        </div>
+
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+        import { getDatabase, ref, onValue, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCdOTC7i5OkYN9NbX96EZq9uvI6gNYxv1s",
+            authDomain: "quiz-bro-d087d.firebaseapp.com",
+            databaseURL: "https://quiz-bro-d087d-default-rtdb.firebaseio.com",
+            projectId: "quiz-bro-d087d",
+            storageBucket: "quiz-bro-d087d.firebasestorage.app",
+            messagingSenderId: "79601755297",
+            appId: "1:79601755297:web:65db46b5412852a1c4fce0"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        let username = '';
+        let currentCategory = null;
+        let currentQuiz = null;
+        let questions = [];
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let timer;
+        let timePerQuestion;
+        let timeTaken = 0;
+
+        const screens = {
+            welcome: document.getElementById('welcomeScreen'),
+            category: document.getElementById('categoryScreen'),
+            quiz: document.getElementById('quizScreen'),
+            gameplay: document.getElementById('gameplayScreen'),
+            results: document.getElementById('resultsScreen'),
+            leaderboard: document.getElementById('leaderboardScreen'),
+        };
+
+        window.showScreen = (screenName) => {
+            Object.values(screens).forEach(screen => screen.classList.add('hidden'));
+            if(screenName === 'leaderboardScreen') loadLeaderboard();
+            document.getElementById(screenName).classList.remove('hidden');
+        };
+
+        window.startApp = () => {
+            username = document.getElementById('username').value.trim();
+            if (username) {
+                showScreen('categoryScreen');
+                loadCategories();
+            } else {
+                alert('Please enter your name.');
+            }
+        };
+        
+        function loadCategories() {
+            const categoriesRef = ref(db, 'categories');
+            onValue(categoriesRef, (snapshot) => {
+                const categories = snapshot.val();
+                const grid = document.getElementById('categoryGrid');
+                grid.innerHTML = '';
+                for (const id in categories) {
+                    const card = document.createElement('div');
+                    card.className = 'category-card';
+                    card.innerHTML = `<h3>${categories[id].name}</h3>`;
+                    card.onclick = () => selectCategory(id, categories[id].name, categories[id].quizzes);
+                    grid.appendChild(card);
+                }
+            });
+        }
+
+        window.selectCategory = (categoryId, categoryName, quizzes) => {
+            currentCategory = { id: categoryId, name: categoryName };
+            const grid = document.getElementById('quizGrid');
+            grid.innerHTML = '';
+
+            if (quizzes) {
+                document.getElementById('quizSelectionTitle').innerText = `Quizzes in ${categoryName}`;
+                for (const quizId in quizzes) {
+                    const card = document.createElement('div');
+                    card.className = 'quiz-card';
+                    card.innerHTML = `<h4>${quizzes[quizId].name}</h4>`;
+                    card.onclick = () => startQuiz(quizId, quizzes[quizId].name, quizzes[quizId].questions);
+                    grid.appendChild(card);
+                }
+            } else {
+                grid.innerHTML = '<p>No quizzes available in this category.</p>';
+            }
+            showScreen('quizScreen');
+        };
+
+        window.startQuiz = (quizId, quizName, quizQuestions) => {
+            if (!quizQuestions) {
+                alert("This quiz has no questions yet!");
+                return;
+            }
+            currentQuiz = { id: quizId, name: quizName };
+            questions = Object.values(quizQuestions);
+            currentQuestionIndex = 0;
+            score = 0;
+            timeTaken = 0;
+            showScreen('gameplayScreen');
+            displayQuestion();
+        };
+
+        function displayQuestion() {
+            if (currentQuestionIndex >= questions.length) {
+                endQuiz();
+                return;
+            }
+
+            const questionData = questions[currentQuestionIndex];
+            document.getElementById('questionCounter').innerText = `Question ${currentQuestionIndex + 1} of ${questions.length}`;
+            document.getElementById('question').innerText = questionData.questionText;
+            
+            const optionsContainer = document.getElementById('options');
+            optionsContainer.innerHTML = '';
+            
+            Object.entries(questionData.options).forEach(([key, value]) => {
+                const optionButton = document.createElement('button');
+                optionButton.className = 'option';
+                optionButton.innerText = `${key}: ${value}`;
+                optionButton.onclick = () => selectAnswer(optionButton, key, questionData.correctAnswer);
+                optionsContainer.appendChild(optionButton);
+            });
+
+            startTimer(questionData.timeLimit);
+        }
+
+        function startTimer(duration) {
+            clearInterval(timer);
+            timePerQuestion = duration;
+            let timeLeft = duration;
+            const timerBar = document.getElementById('timerBar');
+            timerBar.style.width = '100%';
+            timerBar.style.transition = `width ${duration}s linear`;
+            requestAnimationFrame(() => {
+                timerBar.style.width = '0%';
+            });
+
+            timer = setInterval(() => {
+                timeLeft--;
+                timeTaken++;
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    // Time's up, mark as wrong and move to next
+                    disableOptions();
+                    setTimeout(nextQuestion, 1000);
+                }
+            }, 1000);
+        }
+        
+        function selectAnswer(button, selectedOption, correctAnswer) {
+            clearInterval(timer);
+            disableOptions();
+            
+            const timeForThisQuestion = timePerQuestion - Math.floor((parseFloat(document.getElementById('timerBar').style.width) / 100) * timePerQuestion);
+            timeTaken += timeForThisQuestion;
+
+            if (selectedOption === correctAnswer) {
+                button.classList.add('correct');
+                score++;
+            } else {
+                button.classList.add('wrong');
+                // Highlight correct answer
+                document.querySelectorAll('.option').forEach(opt => {
+                    if (opt.innerText.startsWith(correctAnswer)) {
+                        opt.classList.add('correct');
+                    }
+                });
+            }
+            setTimeout(nextQuestion, 1500);
+        }
+
+        function disableOptions() {
+            document.querySelectorAll('.option').forEach(opt => opt.classList.add('disabled'));
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            displayQuestion();
+        }
+
+        function endQuiz() {
+            const total = questions.length;
+            const percentage = total > 0 ? (score / total) * 100 : 0;
+            
+            document.getElementById('totalQuestions').innerText = total;
+            document.getElementById('correctAnswers').innerText = score;
+            document.getElementById('wrongAnswers').innerText = total - score;
+            document.getElementById('totalTime').innerText = timeTaken;
+            document.getElementById('percentageScore').innerText = percentage.toFixed(2);
+            
+            showScreen('resultsScreen');
+            
+            if (percentage > 75) {
+                confetti({
+                    particleCount: 150,
+                    spread: 90,
+                    origin: { y: 0.6 }
+                });
+            }
+
+            saveResult(percentage);
+        }
+        
+        function saveResult(finalScore) {
+            const resultsRef = ref(db, 'leaderboard');
+            push(resultsRef, {
+                username: username,
+                categoryName: currentCategory.name,
+                quizName: currentQuiz.name,
+                score: finalScore,
+                correctAnswers: score,
+                totalQuestions: questions.length,
+                timestamp: serverTimestamp()
+            });
+        }
+        
+        function loadLeaderboard() {
+            const leaderboardRef = ref(db, 'leaderboard');
+            onValue(leaderboardRef, (snapshot) => {
+                const results = snapshot.val() || {};
+                const tbody = document.getElementById('leaderboardBody');
+                tbody.innerHTML = '';
+                const sortedResults = Object.values(results).sort((a, b) => b.score - a.score);
+
+                sortedResults.forEach((result, index) => {
+                    const row = tbody.insertRow();
+                    row.innerHTML = `
+                        <td>${index + 1}</td>
+                        <td>${result.username}</td>
+                        <td>${result.quizName}</td>
+                        <td>${result.score.toFixed(2)}%</td>
+                    `;
+                });
+            });
+        }
+
+    </script>
+</body>
+</html>
